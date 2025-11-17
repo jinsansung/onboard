@@ -10,9 +10,9 @@
         --text-main: #ffffff;
 
         /* 랜덤으로 하나를 골라 --accent 에 적용 예정 */
-        --accent-a: #e1d14c;
-        --accent-b: #60bebb;
-        --accent-c: #dc3a71;
+        --accent-a: #FFFF6C;
+        --accent-b: #C87DFF;
+        --accent-c: #89BCF8;
 
         --accent: var(--accent-a);
 
@@ -277,7 +277,7 @@
         /* ----------------------------------
            1) 컬러 랜덤 선택 함수
         -----------------------------------*/
-        const colorPool = ["#E1D14C", "#60BEBB", "#DC3A71"];
+        const colorPool = ["#FFFF6C", "#C87DFF", "#89BCF8"];
         function applyRandomAccent() {
           const newColor =
             colorPool[Math.floor(Math.random() * colorPool.length)];
