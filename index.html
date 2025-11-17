@@ -157,11 +157,16 @@
 
       /* TRIVIA 한 줄 */
 .trivia-line {
-  margin-top: 30px;
-  font-size: clamp(18px, 2vw, 22px); /* 1.2배 정도 커짐 */
+  position: fixed;
+  bottom: 45px;       /* 화면 하단에서 30px 위 */
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: clamp(18px, 2vw, 22px); 
   color: #ffffff;
   font-weight: 800;
-  text-align: center;
+  z-index: 500;        /* 버튼보다 위 */
+  pointer-events: none; /* 클릭 방해 X */
 }
 
       .button-row {
@@ -259,13 +264,12 @@
             <button id="nextQuestionBtn" class="secondary-btn hidden">질문</button>
             <button id="finishBtn" class="ghost-btn hidden">종료</button>
           </div>
-          <div id="triviaLine" class="trivia-line hidden">
-                TRIVIA:
-          </div>
         </div>
       </section>
     </div>
-
+          <div id="triviaLine" class="trivia-line hidden">
+                TRIVIA:
+          </div>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         /* ----------------------------------
