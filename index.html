@@ -401,8 +401,10 @@
               trivias = Array.isArray(data.trivia) ? data.trivia : [];
               bodyEl.classList.remove("not-ready");
               loadingScreen.style.display = "none";
+              console.log("Loaded questions:", questions.length);
             })
-            .catch(() => {
+            .catch((err) => {
+              console.log("Fetch error:", err);
               setWelcomeName("FRIEND");
               questions = [];
               trivias = [];
