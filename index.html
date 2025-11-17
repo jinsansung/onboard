@@ -156,12 +156,13 @@
       }
 
       /* TRIVIA 한 줄 */
-      .trivia-line {
-        margin-top: 16px;
-        font-size: clamp(14px, 1.6vw, 16px); /* 상대적으로 작게 */
-        color: #ffffff;
-        font-weight: 800;
-      }
+.trivia-line {
+  margin-top: 30px;
+  font-size: clamp(18px, 2vw, 22px); /* 1.2배 정도 커짐 */
+  color: #ffffff;
+  font-weight: 800;
+  text-align: center;
+}
 
       .button-row {
         display: flex;
@@ -250,18 +251,16 @@
               <div id="questionDisplay" class="question-card">
                 질문이 돌아갑니다…
               </div>
-              <div id="triviaLine" class="trivia-line hidden">
-                TRIVIA:
-              </div>
             </div>
           </div>
 
           <div class="button-row">
             <button id="stopBtn" class="primary-btn">스탑</button>
-            <button id="nextQuestionBtn" class="secondary-btn hidden">
-              질문
-            </button>
+            <button id="nextQuestionBtn" class="secondary-btn hidden">질문</button>
             <button id="finishBtn" class="ghost-btn hidden">종료</button>
+          </div>
+          <div id="triviaLine" class="trivia-line hidden">
+                TRIVIA:
           </div>
         </div>
       </section>
