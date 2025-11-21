@@ -271,180 +271,191 @@
                 TRIVIA:
           </div>
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        /* ----------------------------------
-           0) GAS 웹앱 URL
-        -----------------------------------*/
-        const GAS_URL =
-          "https://script.google.com/macros/s/AKfycbxOe3m8PF4-Fo0VBFY8eJYJm9Ues7S7WYE7JLrJ_QiN_u7-2oZk5uGaKNUWUUSRlKvcEQ/exec";
+  document.addEventListener("DOMContentLoaded", () => {
+    const GAS_URL =
+      "https://script.google.com/macros/s/AKfycbxOe3m8PF4-Fo0VBFY8eJYJm9Ues7S7WYE7JLrJ_QiN_u7-2oZk5uGaKNUWUUSRlKvcEQ/exec";
 
-        /* ----------------------------------
-           1) 컬러 랜덤 선택 함수
-        -----------------------------------*/
-        const colorPool = ["#FFFF6C", "#C87DFF", "#89BCF8"];
-        function applyRandomAccent() {
-          const newColor =
-            colorPool[Math.floor(Math.random() * colorPool.length)];
-          document.documentElement.style.setProperty("--accent", newColor);
+    const colorPool = ["#FFFF6C", "#C87DFF", "#89BCF8"];
+    function applyRandomAccent() {
+      const newColor =
+        colorPool[Math.floor(Math.random() * colorPool.length)];
+      document.documentElement.style.setProperty("--accent", newColor);
+    }
+
+    // 최초 한 번 컬러 적용
+    applyRandomAccent();
+
+    const bodyEl = document.body;
+
+    const welcomeView = document.getElementById("welcomeView");
+    const rouletteView = document.getElementById("rouletteView");
+
+    const welcomeNameEl = document.getElementById("welcomeName");
+    const startBtn = document.getElementById("startBtn");
+
+    const questionDisplay = document.getElementById("questionDisplay");
+    const triviaLine = document.getElementById("triviaLine");
+    const stopBtn = document.getElementById("stopBtn");
+    const nextQuestionBtn = document.getElementById("nextQuestionBtn");
+    const finishBtn = document.getElementById("finishBtn");
+    const loadingScreen = document.getElementById("loadingScreen");
+
+    let questions = [];
+    let remainingQuestions = []; // 아직 안 나온 질문들
+    let trivias = [];
+    let isRotating = false;
+    let rotationTimer = null;
+    let currentQuestion = null; // 지금 룰렛에서 마지막으로 보여준 질문
+
+    function showView(view) {
+      welcomeView.classList.remove("active");
+      rouletteView.classList.remove("active");
+      if (view === "welcome") welcomeView.classList.add("active");
+      if (view === "roulette") rouletteView.classList.add("active");
+    }
+
+    function setWelcomeName(name) {
+      const d = (name || "").trim().toUpperCase() || "FRIEND";
+      welcomeNameEl.textContent = d + "!";
+    }
+
+    function hideTrivia() {
+      triviaLine.classList.add("hidden");
+    }
+
+    function showRandomTrivia() {
+      if (!trivias.length) {
+        triviaLine.classList.add("hidden");
+        return;
+      }
+      const idx = Math.floor(Math.random() * trivias.length);
+      triviaLine.textContent = "TRIVIA: " + trivias[idx];
+      triviaLine.classList.remove("hidden");
+    }
+
+    function startRotation() {
+      // 남은 질문이 하나도 없으면 종료 안내
+      if (!remainingQuestions.length) {
+        questionDisplay.textContent = "모든 질문을 다 사용했습니다.";
+        stopBtn.classList.add("hidden");
+        nextQuestionBtn.classList.add("hidden");
+        finishBtn.classList.remove("hidden");
+        hideTrivia();
+        return;
+      }
+      if (isRotating) return;
+
+      isRotating = true;
+      stopBtn.classList.remove("hidden");
+      nextQuestionBtn.classList.add("hidden");
+      finishBtn.classList.add("hidden");
+      hideTrivia();
+
+      rotationTimer = setInterval(() => {
+        const idx = Math.floor(Math.random() * remainingQuestions.length);
+        currentQuestion = remainingQuestions[idx];
+        questionDisplay.textContent = currentQuestion;
+      }, 70);
+    }
+
+    function stopRotation() {
+      if (!isRotating) return;
+      isRotating = false;
+      clearInterval(rotationTimer);
+
+      // 멈춘 시점의 currentQuestion 을 remainingQuestions 에서 제거
+      if (currentQuestion) {
+        const removeIdx = remainingQuestions.indexOf(currentQuestion);
+        if (removeIdx > -1) {
+          remainingQuestions.splice(removeIdx, 1);
         }
+      }
 
-        /* 최초 한 번 컬러 적용 */
-        applyRandomAccent();
+      stopBtn.classList.add("hidden");
+      nextQuestionBtn.classList.remove("hidden");
+      finishBtn.classList.remove("hidden");
 
-        /* ----------------------------------
-           요소 선택
-        -----------------------------------*/
-        const bodyEl = document.body;
+      // 로테이팅 멈춘 후에는 트리비아 표시
+      showRandomTrivia();
+    }
 
-        const welcomeView = document.getElementById("welcomeView");
-        const rouletteView = document.getElementById("rouletteView");
+    function resetRotation() {
+      clearInterval(rotationTimer);
+      isRotating = false;
+      stopBtn.classList.add("hidden");
+      nextQuestionBtn.classList.add("hidden");
+      finishBtn.classList.add("hidden");
+      hideTrivia();
 
-        const welcomeNameEl = document.getElementById("welcomeName");
-        const startBtn = document.getElementById("startBtn");
+      // 질문 풀 리셋
+      remainingQuestions = questions.slice();
+      currentQuestion = null;
+      questionDisplay.textContent = "질문이 돌아갑니다…";
+    }
 
-        const questionDisplay = document.getElementById("questionDisplay");
-        const triviaLine = document.getElementById("triviaLine");
-        const stopBtn = document.getElementById("stopBtn");
-        const nextQuestionBtn = document.getElementById("nextQuestionBtn");
-        const finishBtn = document.getElementById("finishBtn");
-        const loadingScreen = document.getElementById("loadingScreen");
+    // 3) Google Sheet 연동
+    function loadData() {
+      const currentUrl = new URL(window.location.href);
+      const nameParam = currentUrl.searchParams.get("name") || "";
 
-        let questions = [];
-        let trivias = [];
-        let isRotating = false;
-        let rotationTimer = null;
+      const apiUrl = new URL(GAS_URL);
+      apiUrl.searchParams.set("mode", "data");
+      if (nameParam) apiUrl.searchParams.set("name", nameParam);
 
-        function showView(view) {
-          welcomeView.classList.remove("active");
-          rouletteView.classList.remove("active");
-          if (view === "welcome") welcomeView.classList.add("active");
-          if (view === "roulette") rouletteView.classList.add("active");
-        }
+      fetch(apiUrl.toString())
+        .then((res) => res.json())
+        .then((data) => {
+          setWelcomeName(data.name);
+          questions = Array.isArray(data.questions) ? data.questions : [];
+          trivias = Array.isArray(data.trivia) ? data.trivia : [];
 
-        function setWelcomeName(name) {
-          const d = (name || "").trim().toUpperCase() || "FRIEND";
-          welcomeNameEl.textContent = d + "!";
-        }
+          // 남은 질문 풀 초기화
+          remainingQuestions = questions.slice();
 
-        function hideTrivia() {
-          triviaLine.classList.add("hidden");
-        }
+          bodyEl.classList.remove("not-ready");
+          loadingScreen.style.display = "none";
+          console.log("Loaded questions:", questions.length);
+        })
+        .catch((err) => {
+          console.log("Fetch error:", err);
+          setWelcomeName("FRIEND");
+          questions = [];
+          trivias = [];
+          remainingQuestions = [];
 
-        function showRandomTrivia() {
-          if (!trivias.length) {
-            triviaLine.classList.add("hidden");
-            return;
-          }
-          const idx = Math.floor(Math.random() * trivias.length);
-          triviaLine.textContent = "TRIVIA: " + trivias[idx];
-          triviaLine.classList.remove("hidden");
-        }
-
-        function startRotation() {
-          if (!questions.length) {
-            questionDisplay.textContent = "등록된 질문이 없습니다.";
-            stopBtn.classList.add("hidden");
-            nextQuestionBtn.classList.add("hidden");
-            finishBtn.classList.remove("hidden");
-            hideTrivia();
-            return;
-          }
-          if (isRotating) return;
-
-          isRotating = true;
-          stopBtn.classList.remove("hidden");
-          nextQuestionBtn.classList.add("hidden");
-          finishBtn.classList.add("hidden");
-          hideTrivia();
-
-          rotationTimer = setInterval(() => {
-            const idx = Math.floor(Math.random() * questions.length);
-            questionDisplay.textContent = questions[idx];
-          }, 70);
-        }
-
-        function stopRotation() {
-          if (!isRotating) return;
-          isRotating = false;
-          clearInterval(rotationTimer);
-
-          stopBtn.classList.add("hidden");
-          nextQuestionBtn.classList.remove("hidden");
-          finishBtn.classList.remove("hidden");
-
-          // 로테이팅 멈춘 후에는 트리비아 표시
-          showRandomTrivia();
-        }
-
-        function resetRotation() {
-          clearInterval(rotationTimer);
-          isRotating = false;
-          stopBtn.classList.add("hidden");
-          nextQuestionBtn.classList.add("hidden");
-          finishBtn.classList.add("hidden");
-          hideTrivia();
-        }
-
-        /* ----------------------------------
-           3) Google Sheet 연동
-        -----------------------------------*/
-        function loadData() {
-          const currentUrl = new URL(window.location.href);
-          const nameParam = currentUrl.searchParams.get("name") || "";
-
-          const apiUrl = new URL(GAS_URL);
-          apiUrl.searchParams.set("mode", "data");
-          if (nameParam) apiUrl.searchParams.set("name", nameParam);
-
-          fetch(apiUrl.toString())
-            .then((res) => res.json())
-            .then((data) => {
-              setWelcomeName(data.name);
-              questions = Array.isArray(data.questions) ? data.questions : [];
-              trivias = Array.isArray(data.trivia) ? data.trivia : [];
-              bodyEl.classList.remove("not-ready");
-              loadingScreen.style.display = "none";
-              console.log("Loaded questions:", questions.length);
-            })
-            .catch((err) => {
-              console.log("Fetch error:", err);
-              setWelcomeName("FRIEND");
-              questions = [];
-              trivias = [];
-              bodyEl.classList.remove("not-ready");
-              loadingScreen.style.display = "none";
-            });
-        }
-
-        /* ----------------------------------
-           4) 이벤트 바인딩
-           - 버튼 누를 때마다 컬러 변경
-        -----------------------------------*/
-        startBtn.addEventListener("click", () => {
-          applyRandomAccent();
-          showView("roulette");
-          questionDisplay.textContent = "질문이 돌아갑니다…";
-          startRotation();
+          bodyEl.classList.remove("not-ready");
+          loadingScreen.style.display = "none";
         });
+    }
 
-        stopBtn.addEventListener("click", () => {
-          stopRotation();
-        });
+    // 4) 이벤트 바인딩
+    startBtn.addEventListener("click", () => {
+      applyRandomAccent();
+      showView("roulette");
+      // 시작할 때도 남은 질문 풀을 한 번 리셋해 두면 좋음
+      remainingQuestions = questions.slice();
+      questionDisplay.textContent = "질문이 돌아갑니다…";
+      startRotation();
+    });
 
-        nextQuestionBtn.addEventListener("click", () => {
-          applyRandomAccent();
-          startRotation();
-        });
+    stopBtn.addEventListener("click", () => {
+      stopRotation();
+    });
 
-        finishBtn.addEventListener("click", () => {
-          applyRandomAccent();
-          resetRotation();
-          showView("welcome");
-        });
+    nextQuestionBtn.addEventListener("click", () => {
+      applyRandomAccent();
+      startRotation();
+    });
 
-        /* 최초 로드 */
-        loadData();
-      });
-    </script>
+    finishBtn.addEventListener("click", () => {
+      applyRandomAccent();
+      resetRotation();
+      showView("welcome");
+    });
+
+    // 최초 로드
+    loadData();
+  });
+</script>
   </body>
 </html>
